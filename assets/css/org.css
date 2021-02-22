@@ -1,0 +1,39 @@
+html {
+    background: #22262B;
+}
+
+body {
+    margin: 5%;
+    line-height: 1.4;
+    color: #ccc;
+}
+
+a {
+    color: #5F97D2;
+    text-decoration: none;
+}
+
+h1,h2,h3,h4,h5,h6 {
+    color: #eee;
+}
+
+a:visited {
+    color: #9D5FD2;
+}
+
+pre {
+    box-shadow: 3px 3px 3px #111;
+    border: 1px solid #111;
+}
+
+pre.src {
+    color: #eee;
+    background-color: #292e34;
+    overflow-x: scroll;
+}
+
+pre.src:before {
+    color: #222;
+    top: 7px;
+}
+
