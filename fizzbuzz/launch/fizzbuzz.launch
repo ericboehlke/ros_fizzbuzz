@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="fizzbuzz" name="fizzbuzz_node" type="fizzbuzz_node.py" output="screen"/>
+    <node pkg="fizzbuzz" name="number_publishing_node" type="number_publishing_node.py" output="screen"/>
+</launch>
