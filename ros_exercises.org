@@ -1,227 +1,315 @@
 # -*- mode: org; -*-
-#+TITLE: FizzBuzz the ROS way
+#+TITLE: FizzBuzz the ROS2 way
 #+SETUPFILE: assets/setup/theme-ericboehlke.setup
 * Overview
   In this tutorial you will create a version of the classic FizzBuzz programming
-  exercise using ROS and Python. 
+  exercise using ROS2 Galactic and Python 3. 
   
-  This tutorial is meant to be interactive, so the code on this page will not work by itself. You will have to make some changes and complete the parts labeled ~TODO~.
+  This tutorial is meant to be interactive, so the code on this page will not work by itself.
+  You will have to make some changes and complete the parts labeled ~TODO~.
   If you run into problems or get stuck, a completed version of the code is available at https://github.com/ericboehlke/ros_fizzbuzz
+  If you find errors in this document you can also submit bug reports on that repository.
 ** You will
-   1. Create a package in your catkin workspace
-   2. Make a Number Publisher Node
-   3. Make a FizzBuzz Node
-   4. Create your own ROS message type
-   5. Create a Launch File to run both of these nodes
-   6. Examine the node structure with rqt
+   1. Create a ROS2 workspace
+   1. Create a package in your workspace
+   1. Make a Number Publisher Node
+   1. Make a FizzBuzz Node
+   1. Create your own ROS2 message type
+   1. Create a Launch File to run both of these nodes
+   1. Examine the node structure with rqt
 ** Prerequisites
-   * If you haven't already, you will need to install ROS. Here is a link for instructions on how to install ROS: http://wiki.ros.org/ROS/Installation.
-   * You will also need a ROS workspace. For more information on setting up a workspace see this tutorial: http://wiki.ros.org/catkin/Tutorials/create_a_workspace/. 
-     One additional note is to be sure to run ~source devel/setup.bash~ in every terminal you intend to use ROS with. 
-     This command will let you use autocompletion and run other ROS commands with the files in your workspace.
-* Creating a Package
-  For more information regarding ROS packages, see this tutorial: https://wiki.ros.org/ROS/Tutorials/CreatingPackage.
-   
-   The first step is to create a new package in your catkin workspace. Navigate 
-   to the ~src~ directory in your catkin workspace and create a package named 
-   ~fizzbuzz~ with dependencies of ~std_msgs~ and ~rospy~. 
-   
+   * If you haven't already, you will need to install ROS2 Galactic.
+     Here is a link for instructions on how to install ROS2: https://docs.ros.org/en/galactic/Installation/Ubuntu-Install-Debians.html.
+* Creating a Workspace
+  To start working with ROS2 you will need a workspace.
+  To create one you can run the following command. It will make a workspace in your home (~~~) directory
+  called ~ros2_ws~ and a ~src~ directory inside the workspace where your packages will go.
+  For more information on setting up a workspace see this tutorial: https://docs.ros.org/en/galactic/Tutorials/Workspace/Creating-A-Workspace.html.
+
 #+BEGIN_SRC sh :var data="" :var width="\\textwidth" :results output
-  cd ~/catkin_ws/src
-  catkin_create_pkg fizzbuzz std_msgs rospy
+  mkdir -p ~/ros2_ws/src
 #+END_SRC
 
-  Then create a directory named ~scripts~ for the python files we will make in 
-  the following steps.
+* Creating a Package
+  For more information regarding ROS2 packages, see this tutorial: https://docs.ros.org/en/galactic/Tutorials/Creating-Your-First-ROS2-Package.html.
+   
+** Making the fizzbuzz Package
+  In this tutorial you are going to make a CMake package.
+  This will allow you to write nodes in both python and c++ and create custom ROS2 message types.
+  There is an option to create a python only package as well, however python packages cannot contain custom ROS2 messages.
+  The ROS2 tutorial linked above has more information about that.
+
+  The first step is to create a new package in your workspace.
+  Navigate to the ~src~ directory in your catkin workspace and create a package named ~fizzbuzz~ with dependencies of ~std_msgs~ and ~rclpy~. 
+   
+#+BEGIN_SRC sh :var data="" :var width="\\textwidth" :results output
+  cd ~/ros2_ws/src
+  ros2 pkg create --build-type ament_cmake fizzbuzz --dependencies std_msgs rclpy
+#+END_SRC
+
+  Now you will have a directory named ~fizzbuzz~ inside your ~src~ directory that contains the following files.
+
+#+BEGIN_SRC sh :var data="" :var width="\\textwidth" :results output
+  $ tree ~/ros2_ws/src/fizzbuzz
+  .
+  ├── CMakeLists.txt
+  ├── include
+  │   └── fizzbuzz
+  ├── package.xml
+  └── src
+
+  3 directories, 2 files
+#+END_SRC
+
+  We also need a to create a directory for the python files we will make in the following steps.
+  Create a directory named ~fizzbuzz~ with an empty file named ~__init__.py~ inside.
   
 #+BEGIN_SRC sh :var data="" :var width="\\textwidth" :results output
-  cd ~/catkin_ws/src/fizzbuzz
-  mkdir scripts
+  cd ~/ros2_ws/src/fizzbuzz
+  mkdir fizzbuzz
+  touch fizzbuzz/__init__.py
 #+END_SRC
 
-  Finally because we added a new package to the catkin workspace we need to run 
-  ~catkin_make~.
+  Now your package should look like this.
 
 #+BEGIN_SRC sh :var data="" :var width="\\textwidth" :results output
-  cd ~/catkin_ws
-  catkin_make
+  $ tree ~/ros2_ws/src/fizzbuzz
+  .
+  ├── CMakeLists.txt
+  ├── fizzbuzz
+  │   └── __init__.py
+  ├── include
+  │   └── fizzbuzz
+  ├── package.xml
+  └── src
+
+  4 directories, 3 files
 #+END_SRC
+** Compiling the fizzbuzz Package
+  Now that we have a package, we can compile it to see if we created the package and workspace correctly.
+  To compile the packages in the workspace first make sure that your ROS2 installation's setup file is sourced.
+  You will need to make sure the setup file is sourced in every terminal in which you wish to use ROS2.
+  This command will source that file.
+
+#+BEGIN_SRC sh :var data="" :var width="\\textwidth" :results output
+    source /opt/ros/galactic/setup.bash
+#+END_SRC
+
+  You can automatically source this file in every new terminal by adding this line to your ~~/.bashrc file~.
+  That can be accomplished by running this command.
+
+#+BEGIN_SRC sh :var data="" :var width="\\textwidth" :results output
+    echo "source /opt/ros/galactic/setup.bash" >> ~/.bashrc
+#+END_SRC
+
+  Now that ROS2 is set up in the current terminal you can to navigate to the top of your workspace and run ~colcon build~.
+
+#+BEGIN_SRC sh :var data="" :var width="\\textwidth" :results output
+  cd ~/ros2_ws
+  colcon build
+#+END_SRC
+
+ If everything worked the output from ~colcon build~ will look something like this below and you will have 3 new directories
+ in the root of your workspace named ~build~, ~log~, and ~install~.
+
+#+BEGIN_SRC sh :var data="" :var width="\\textwidth" :results output
+  $ colcon build
+  Starting >>> fizzbuzz
+  Finished <<< fizzbuzz [0.19s]                
+
+  Summary: 1 package finished [0.31s]
+#+END_SRC
+
 * Number Publisher Node
    Now that we have a package, it is time to create a node that publishes numbers that we can use to play the FizzBuzz game.
-** Starting off with Simple Publisher
+   More information on creating ROS2 nodes in python can be found here: https://docs.ros.org/en/galactic/Tutorials/Writing-A-Simple-Py-Publisher-And-Subscriber.html.
+** Starting off with a Minimal Publisher
 *** Code
-   The number publisher node will live in the ~scripts~ folder we made in the 
-   last section. You can navigate to this folder with the following command 
-   since ROS now knows about your new package and where it is located.
-   
-#+BEGIN_SRC sh :var data="" :var width="\\textwidth" :results output
-  roscd fizzbuzz/scripts
-#+END_SRC
+   The number publisher node will live in the ~fizzbuzz~ folder inside the ~fizzbuzz~ package we made in the last section.
+   Now we will start creating the number publishing node called ~number_publisher_node.py~.
+   Here is a minimal publisher node template from the ROS2 python node tutorial that we can use as a starting point.
+   Create a new file at the path ~~/ros2_ws/src/fizzbuzz/fizzbuzz/number_publisher_node.py~ and paste in the following code.
 
-   If the previous command failed, remember that you have to source the setup file located at ~devel/setup.bash~ in your workspace after each time you run ~catkin_make~.
-
-   Now we will start creating the number publishing node called ~number_publisher_node.py~. Here is a simple publisher node template that we can use as a starting point.
+   Super important note: If you want to run python files in a CMake package, make sure you add a shebang otherwise you
+   will get an error when you try to run the node.
 
 #+BEGIN_SRC python
-  #!/usr/bin/env python
+  #!/usr/bin/env python3
 
-  import rospy
+  import rclpy
+  from rclpy.node import Node
 
-  # import the ROS String message type
   from std_msgs.msg import String
 
-  class SimplePublisherNode:
+  class MinimalPublisher(Node):
+
       def __init__(self):
-          rospy.loginfo("Starting simple_publisher")
+          super().__init__('minimal_publisher')
+          self.publisher_ = self.create_publisher(String, 'topic', 10)
+          timer_period = 0.5  # seconds
+          self.timer = self.create_timer(timer_period, self.timer_callback)
+          self.i = 0
 
-          # create a publisher object to send data
-          self.pub = rospy.Publisher("chatter", String, queue_size=10)
-
-          PUBLISH_RATE = 10.0 # 10 Hz
-          # create a timer that calls the timer_callback function at
-          # the specified rate
-          rospy.Timer(rospy.Duration(1.0/PUBLISH_RATE), self.timer_callback)
-
-      def timer_callback(self, event):
-          # this function is called by the timer
-          hello_str = "hello there %s" % rospy.get_time()
-
-          # loginfo to print the string to the terminal
-          rospy.loginfo(hello_str)
-
-          # publish the string message
-          self.pub.publish(hello_str)
+      def timer_callback(self):
+          msg = String()
+          msg.data = 'Hello World: %d' % self.i
+          self.publisher_.publish(msg)
+          self.get_logger().info('Publishing: "%s"' % msg.data)
+          self.i += 1
 
 
-  if __name__ == "__main__":
-      rospy.init_node("simple_publisher")
-      node = SimplePublisherNode()
-      rospy.spin()
-#+END_SRC
+  def main(args=None):
+      rclpy.init(args=args)
 
-   ROS nodes need to be executable. To make a file executable use the following
-   command.
-   
-#+BEGIN_SRC sh
-  chmod +x [FILE_NAME]
+      minimal_publisher = MinimalPublisher()
+
+      rclpy.spin(minimal_publisher)
+
+      # Destroy the node explicitly
+      # (optional - otherwise it will be done automatically
+      # when the garbage collector destroys the node object)
+      minimal_publisher.destroy_node()
+      rclpy.shutdown()
+
+
+  if __name__ == '__main__':
+      main()
 #+END_SRC
 
 *** Explaination
-    This example ROS node is similar to the [[https://wiki.ros.org/ROS/Tutorials/WritingPublisherSubscriber%28python%29][ROS Python Publisher Tutorial]] except
-    that the node is written as a class using a timer to create callbacks instead
-    of using a function with a while loop. Using classes sometimes makes the code
-    look cleaner. 
-
-    The python file can be thought of in three parts.
+    The python file can be broken down into four parts.
     1. The imports at the top of the file
-    2. The main logic for the node in the class
-    3. And the if statement at the bottom.
+    1. The node class
+    1. The main function
+    1. And the if statement at the bottom.
 
 **** Imports
-     The two imports here are ~rospy~ and the ~String~ message type
+    The two imports here are ~rclpy~ and the ~String~ message type from the ~std_msgs~ ROS2 package.
      
-**** The SimplePublisherNode Class
-     This class has two functions inside. 
+**** The MinimalPublisher Class
+    This class has two functions inside. 
 
-      The ~__init__~ function runs just once
-      when an instance of the class is created in the if statement at the bottom
-      of the file. It first prints a message to the roslog to say that 
-      ~simple_publisher~ is starting. This is not necessary to the function of the
-      node and just serves as a helpful way to see when the node starts. It is 
-      prefered to use ~rospy.loginfo~ instead of ~print~ because it works better with
-      other ROS features and will print to the terminal even if the node is started
-      with a launch file (something the ~print~ function will not do). 
-     
-      Next a publisher is created with ~rospy.Publisher~. This function has 3
-      arguments. The first is the name of the topic that the publisher is 
-      publishing to. In this case it is ~chatter~. The second is the message
-      type. In this case the node publishes strings so the ~std_msgs/String~ type
-      is used. The final argument is how many messages the publisher keeps around
-      in case the subscribers are not receiving them fast enough. Ten is a good number.
+    The ~__init__~ function runs just once when an instance of the class is created.
+    It first prints a log message to say that the node is starting.
+    This is not necessary to the function of the node and just serves as a helpful way to see when the node starts.
 
-      Finally a timer is created. This timer calls the ~self.timer_callback~ 
-      function at the rate specified.
+    Next a publisher is created with ~self.create_publisher()~.
+    This function has 3 arguments.
+    The first is the message type.
+    In this case the node publishes strings so the ~String~ type is used.
+    The second is the name of the topic that the publisher is publishing to.
+    In this case it is boringly named ~topic~.
+    The final argument is the queue size and determines how many messages the publisher keeps around
+    in case the subscribers are not receiving them fast enough.
+    Ten is a good number.
 
-      The ~timer_callback~ function does the work of publishing the messages. 
-      When it is called it creates a string that contains the current time 
-      according to ROS. Then it prints this string using ~roslog~ and publishes
-      it using ~self.pub.publish~.
+    Finally a timer is created with ~self.create_timer()~.
+    This timer calls the ~self.timer_callback~ function with a period between calls of 0.5 seconds.
 
+    The ~timer_callback~ function does the work of publishing the messages. 
+    When it is called it creates a string that says "Hello World" and starts counting up with each created message.
+    Then it publishes the string with ~self.publisher.publish()~ and prints out a log statement with the current counter value.
+
+
+**** The main function
+     The main function first initializes the ~rclpy~ library and then calls ~rclpy.spin()~
+     which keeps the nodes running and makes sure all the timers, publishers, and subscribers in a node work properly.
+     When the program is told to stop, the node is destroyed and ~rclpy~ is shutdown.
 
 **** The If Statement
 
 #+BEGIN_SRC python
-if __name__ == "__main__":
+    if __name__ == '__main__':
+        main()
 #+END_SRC
 
      If you have never seen this syntax before it is a way to only run code if
-     the python file is run directly and not if it has been imported into 
-     another file. 
+     the python file is run directly and not if it has been imported into another file. 
+     In this case it just calls the main function.
 
-     In this case it contains the code to initialize the node with the ROS
-     master, make an instance of the class and run ~rospy.spin()~ to keep the 
-     node running.
-
-     
 ** Start Counting!
-  Right now this simple publisher node publishes strings instead of numbers. We 
-  need to customize the example to our use case. First change the class name 
-  from ~SimplePublisherNode~ to ~NumberPublisherNode~ both in the class 
-  declaration and in the if statement at the bottom. You should change the name
-  in the ~rospy.init_node~ function call as well. This function lets the rest of
-  ROS know what the node's name is. Might as well change the ~loginfo~ message 
-  to reflect the name change as well.
+  Right now this minimal publisher node publishes strings instead of numbers. We 
+  need to customize the example to our use case.
+*** Rename the Node
+  First let's change all the places where it says ~MinimalPublisher~ or ~minimal_publisher~ to ~NumberPublisher~ or ~number_publisher~ respectively.
+  Make sure you change the name in the ~super().__init__~ function call as well. This function lets the rest of ROS know what the node's name is. 
 
+*** Change the Message Type
   Right now the message being used is the ~std_msgs/String~ message. For the 
   number publisher we want to publish integers. Find the appropriate message 
-  type to replace with String. The list of all of the messages in ~std_msgs~ can
-  be found [[https://wiki.ros.org/std_msgs][here]]. Make sure to replace the message type both in the import and 
-  where the publisher is created. Rename the topic from ~chatter~ to something more descriptive
-  such as ~numbers~. 
+  type to replace with String. The list of all of the messages in ~std_msgs~ can be found [[https://github.com/ros2/common_interfaces/blob/galactic/std_msgs/README.md][here]].
+  Make sure to replace the message type in the import, where the publisher is created, and in the callback.
+  Rename the topic from ~topic~ to something more descriptive such as ~numbers~. 
 
+*** Make it Count!
   Now the node is nearly all set up to publish integers instead of strings. All that is
   left is to change the callback function to make that happen. Your mission, 
   should you choose to accept it, is to publish integers starting at 0 and 
-  increasing by 1 everytime.
+  increasing by 1 every message.
+
+** Adding the Node to the Build.
+   To compile our node we need to let the ~colcon~ build tool know that it exists.
+   To do that we need to add some lines to ~CMakeLists.txt~ and ~package.xml~.
+
+   Add the following line to ~package.xml~.
+#+BEGIN_SRC xml :var data="" :var width="\\textwidth" :results output
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+#+END_SRC
+
+   Then in ~CMakeLists.txt~, we need to add the ~ament_cmake_python~ package to the build so we can build python files.
+#+BEGIN_SRC text :var data="" :var width="\\textwidth" :results output
+  find_package(ament_cmake_python REQUIRED)
+#+END_SRC
+
+   And add this block to ~CMakeLists.txt~ as well to tell ~colcon~ where the python file with our number publisher is located.
+#+BEGIN_SRC text :var data="" :var width="\\textwidth" :results output
+  ament_python_install_package(${PROJECT_NAME})                                                                                                             
+
+  install(PROGRAMS                                                            
+    fizzbuzz/number_publisher_node.py                                         
+    DESTINATION lib/${PROJECT_NAME}                                           
+  ) 
+#+END_SRC
 * Testing the Number Publisher Node
   Now it is time to see your hard work in action. Lets test the number
   publisher node to make sure it is functioning properly.
 
-  Step one is to open a bunch of terminal windows. For this test you will need 3
-  windows. Remember to run ~source devel/setup.bash~ in each one. Your desktop will be much more organized if you use a terminal manager such 
-  as terminator or tmux. This will allow you to easiy see everything that is 
-  going on without windows overlapping or having to switch between tabs. 
-
-  Step two is to run the following command in one of the terminals to start the ROS
-  master. The ROS master program keeps track of all of the nodes and topics and 
-  facilitates the process of nodes publishing and subscribing to topics. If 
-  you want to run any ROS nodes at all you will need a ROS master running.
+  First you will have to build your package again.
+  To do this source your workspace setup file, which was created in the ~install~ directory last time we ran ~colcon build~,
+  and run ~colcon build~ from the root of your workspace.
 
 #+BEGIN_SRC sh
-  roscore
+  cd ~/ros2_ws
+  source install/setup.bash
+  colcon build
 #+END_SRC
 
-  Step three is to set up a terminal window to listen to a topic and print all
+  Step two is to open an additional terminal window.
+  Remember to run ~source install/setup.bash~ in the new one as well.
+  You can use whatever termainal emulator you want but I recommend tmux or terminator. 
+  One of these programs will allow you to easiy see everything that is 
+  going on without windows overlapping or having to switch between tabs. 
+
+  Step three is to start our number publisher node in either terminal. For this you can use the ~ros2 run [package_name] [node_name]~ command.
+
+#+BEGIN_SRC sh
+  ros2 run fizzbuzz number_publisher_node.py
+#+END_SRC
+
+  Step four is to set up the other terminal window to listen to a topic and print all
   of the messages it recieves to the terminal. This way we can make sure that
   the node is publishing correctly. The following command does exactly that:
-  ~rostopic echo [topic_name]~. Note that you will get a warning saying that the topic 
+  ~ros2 topic echo [topic_name]~. Note that you will get a warning saying that the topic 
   has not been published yet. That is to be expected and we will fix that next.
 
 #+BEGIN_SRC sh
-  rostopic echo numbers
+  ros2 topic echo numbers
 #+END_SRC
 
-  Finally we need to start the node. For this you can use the 
-  ~rosrun [package_name] [node_name]~ command. Note that we did not have to run ~catkin_make~ after making our Python script.
-
-#+BEGIN_SRC sh
-  rosrun fizzbuzz number_publisher_node.py
-#+END_SRC
-
-  Now you should see numbers counting up from two of your terminals. The terminal running the node is displaying the numbers via 
-  the ROS log and the terminal running the ~rostopic echo~ command is subscribing to the messages published by the ~number_publisher_node~.
+  Now you should see numbers counting up from the terminal running ~ros2 topic echo~.
+  That terminal is subscribed to the messages published by the ~number_publisher_node~ and prints them out to the screen.
   
-  You can use ~^C~ (Ctrl-C) to stop the processes in all three terminals whenever you like. 
+  You can use ~^C~ (Ctrl-C) to stop the processes in either terminal whenever you are done. 
 * FizzBuzz Node
   Now we are on to the FizzBuzz node. This node will subscribe to the ~numbers~
   topic that we made in the last section and will publish its own topic named
@@ -234,11 +322,11 @@ if __name__ == "__main__":
    Our custom fizzbuzz message will look like this.
    
 #+BEGIN_SRC text :var data="" :var width="\\textwidth" :results output
- string fizzbuzz  # the result of the fizzbuzz function
- float32 fizz_ratio  # the ratio of fizz results to non fizz results
- float32 buzz_ratio  # the ratio of buzz results to non buzz results
- float32 fizzbuzz_ratio  # the ratio of fizzbuzz results to non fizzbuzz results
- int32 number_total  # the total number of numbers received.
+  string fizzbuzz  # the result of the fizzbuzz function
+  float32 fizz_ratio  # the ratio of fizz results to non fizz results
+  float32 buzz_ratio  # the ratio of buzz results to non buzz results
+  float32 fizzbuzz_ratio  # the ratio of fizzbuzz results to non fizzbuzz results
+  int32 number_total  # the total number of numbers received.
 #+END_SRC
  
    The string ~fizzbuzz~ will either be ~fizz~ if the number is divisible by 
@@ -246,106 +334,74 @@ if __name__ == "__main__":
    divisible by 15, or an empty string if none of the previous cases are true.
 
    To create this new message type in ROS, we will have to make a file named
-   ~FizzBuzz.msg~ in a new folder named ~msg~ within the ~fizzbuzz~ package. 
+   ~FizzBuzz.msg~ in a new folder named ~msg~ within the ~fizzbuzz~ package.
+   Then paste the message content above into the new file.
 
 #+BEGIN_SRC sh :var data="" :var width="\\textwidth" :results output
-  mkdir -p ~/catkin_ws/src/fizzbuzz/msg
-  cd ~/catkin_ws/src/fizzbuzz/msg
+  mkdir -p ~/ros2_ws/src/fizzbuzz/msg
+  cd ~/ros2/src/fizzbuzz/msg
   touch FizzBuzz.msg
 #+END_SRC
 
-   Now that you have a new message file you need to tell catkin where it is and that you want it compiled. 
-   To do this you will have to edit the file ~CMakeLists.txt~ as well as ~package.xml~ in the fizzbuzz package. By default there are comments
-   in the ~CMakeLists.txt~ file that will guide you through adding a new message.
-   
-   The uncommented parts of your ~CMakeLists.txt~ and ~package.xml~ files should look something like this.
+   Now that you have a new message file you need to add it to the build. 
+   To do this you will have to edit the file ~CMakeLists.txt~ as well as ~package.xml~ in the package.
+
+   Add the following to your ~CMakeLists.txt~.
    
 #+BEGIN_SRC text :var data="" :var width="\\textwidth" :results output
-  cmake_minimum_required(VERSION 3.0.2)
-  project(fizzbuzz)
+  find_package(rosidl_default_generators REQUIRED)
 
-  find_package(catkin REQUIRED COMPONENTS
-    rospy
-    std_msgs
-    message_generation
-  )
-
-  add_message_files(
-    FILES
-    FizzBuzz.msg
-  )
-
-  generate_messages(
-    DEPENDENCIES
-    std_msgs
-  )
-
-  catkin_package(
-    CATKIN_DEPENDS rospy std_msgs message_runtime
-  )
-
-  include_directories(
-    ${catkin_INCLUDE_DIRS}
-  )
+  rosidl_generate_interfaces(${PROJECT_NAME}
+    msg/FizzBuzz.msg  
+  ) 
 #+END_SRC
    
+   And these lines to your ~package.xml~.
 #+BEGIN_SRC xml :var data="" :var width="\\textwidth" :results output
-  <?xml version="1.0"?>
-  <package format="2">
-    <name>fizzbuzz</name>
-    <version>1.0.0</version>
-    <description>The fizzbuzz package</description>
-    <maintainer email="eric@ericboehlke.com">Eric Boehlke</maintainer>
-    <license>MIT</license>
+  <build_depend>rosidl_default_generators</build_depend>
 
-    <buildtool_depend>catkin</buildtool_depend>
-    <build_depend>rospy</build_depend>
-    <build_depend>std_msgs</build_depend>
-    <build_depend>message_generation</build_depend>
-    <build_export_depend>rospy</build_export_depend>
-    <build_export_depend>std_msgs</build_export_depend>
-    <exec_depend>rospy</exec_depend>
-    <exec_depend>std_msgs</exec_depend>
-    <exec_depend>message_runtime</exec_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
 
-    <export>
-    </export>
-  </package>
+  <member_of_group>rosidl_interface_packages</member_of_group>
 #+END_SRC
 
-  
-   After you have updated those two files, you will need to run ~catkin_make~ to build the message.
+   After you have updated those two files, you will need to run ~colcon build~ to build the message.
+   It is also good to source in the workspace setup file again whenever a new message or node is created
    
 #+BEGIN_SRC sh :var data="" :var width="\\textwidth" :results output
-  cd ~/catkin_ws
-  catkin_make
+  cd ~/ros2_ws
+  colcon build
+  source install/setup.bash
 #+END_SRC
 
-  If everything worked correctly, you should be able to use ~rosmsg info [message_name]~ to see the contents of your new FizzBuzz message.
+  If everything worked correctly, you should be able to use ~ros2 interface show <package>/msg/<message_name>~
+  to see the contents of your new FizzBuzz message.
   
 #+BEGIN_SRC sh :var data="" :var width="\\textwidth" :results output
-  rosmsg info FizzBuzz
+  ros2 interface show fizzbuzz/msg/FizzBuzz
 #+END_SRC
  
 ** FizzBuzz Node 
    
 *** Code
-   The FizzBuzz node will also live in the ~scripts~ folder. Create a new file
+   The FizzBuzz node will also live in the ~fizzbuzz~ folder. Create a new file
    named ~fizzbuzz_node.py~. Here is some code to get you started.
 
 #+BEGIN_SRC python :var data="" :var width="\\textwidth" :results output
-  #!/usr/bin/env python
+  #!/usr/bin/env python3
 
-  import rospy
+  import rclpy
+  from rclpy.node import Node
 
   # import our new fizzbuzz message type
   from fizzbuzz.msg import FizzBuzz 
 
   # TODO import the number message used for the numbers topic
 
-  class FizzBuzzNode:
+  class FizzBuzzNode(Node):
       def __init__(self):
-          rospy.loginfo("TODO: add appropriate log message for when node starts")
+          super().__init__('fizzbuzz')
+          self.get_logger().info("Starting fizzbuzz node")
 
           self.total_numbers = 0
           self.total_fizz = 0
@@ -353,10 +409,10 @@ if __name__ == "__main__":
           self.total_fizzbuzz = 0
 
           # create a publisher object to send data
-          self.fizzbuzz_pub = rospy.Publisher("fizzbuzz_stats", FizzBuzz, queue_size=10)
+          self.fizzbuzz_pub = self.create_publisher(FizzBuzz, "fizzbuzz_stats", 10)
 
           # TODO fill in the TOPIC_NAME and MESSAGE_TYPE
-          rospy.Subscriber("TOPIC_NAME", MESSAGE_TYPE, self.number_callback)
+          self.number_sub = self.create_subscription(MESSAGE_TYPE, "TOPIC_NAME", self.number_callback, 10)
 
       def number_callback(self, msg):
           # this function is called whenever a number is recived.
@@ -365,7 +421,7 @@ if __name__ == "__main__":
 
           fizzbuzz_str = self.fizzbuzz(number)
           # loginfo to print the string to the terminal
-          rospy.loginfo(fizzbuzz_str)
+          self.get_logger().info(fizzbuzz_str)
 
           fizzbuzz_msg = FizzBuzz()
           fizzbuzz_msg.fizzbuzz = fizzbuzz_str
@@ -383,14 +439,16 @@ if __name__ == "__main__":
           #      "fizz" if number divisible my 3
           #      "buzz" if number divisible my 5
           #      "fizzbuzz" if number divisible my 15
-          #      a string containing the number otherwise
+          #      an empty string otherwise
           return ""
 
 
   if __name__ == "__main__":
-      rospy.init_node("fizzbuzz_node")
+      rclpy.init()
       node = FizzBuzzNode()
-      rospy.spin()
+      rclpy.spin(node)
+      node.destroy_node()
+      rclpy.shutdown()
 #+END_SRC
 
 *** Explaination
@@ -412,80 +470,100 @@ if __name__ == "__main__":
     string containing the correct response for that number.
 
 *** Complete the Node 
-    If you complete the code in the places marked by ~TODO~ , you will have a functioning FizzBuzz Node. 
-    Remember to make the python script executable as well.
+    If you complete the code in the places marked by ~TODO~, you will have a functioning FizzBuzz Node. 
+
+    Make sure you add it to the build by specifiying the new file in ~CMakeLists.txt~ as well.
 
 * Testing the FizzBuzz Node
-  Let's check to make sure the FizzBuzz node is working correctly. Open four terminals and run the following commands.
-
-  This command starts the ROS master.
-
-#+BEGIN_SRC sh
-  roscore
-#+END_SRC
+  Let's check to make sure the FizzBuzz node is working correctly.
+  Build the package again from the root of the workspace.
+  Open three terminals and run the following commands.
 
   This starts up the FizzBuzz node we just made. 
   You should see the result of fizzbuzz printed to the terminal whenever this node recives a message from the ~numbers~ topic.
   
 #+BEGIN_SRC sh
-  rosrun fizzbuzz fizzbuzz_node.py
+  ros2 run fizzbuzz fizzbuzz_node.py
 #+END_SRC
 
   This command displays the messages published to the ~fizzbuzz_stats~ topic.
   You should see the result of FizzBuzz as well as the ratio and total count in this terminal after you start the number publisher.
 
 #+BEGIN_SRC sh
-  rostopic echo fizzbuzz_stats
+  ros2 topic echo fizzbuzz_stats
 #+END_SRC
 
   When you run this command the ~number_publisher_node~ will start publishing numbers and will kick off the whole game of FizzBuzz.
 
 #+BEGIN_SRC sh
-  rosrun fizzbuzz number_publisher_node.py
+  ros2 run fizzbuzz number_publisher_node.py
 #+END_SRC
 
 
 * Making a Launch File
-  That was a lot of terminals we needed to play FizzBuzz! It would be great if there was a way to start multiple ROS nodes with one command. 
+  That was a lot of terminals we needed to play FizzBuzz!
+  It would be great if there was a way to start multiple ROS nodes with one command. 
   That is where launch files come in.
 
-  Launch files are files that contain instructions to run a group of ROS nodes. We will 
-  now make a launch file to start both the number publisher and the fizzbuzz 
-  node. Here is an example launch file that runs the ~number_publisher_node.py~.
+  Launch files are files that contain instructions to run a group of ROS nodes.
+  We will now make a launch file to start both the number publisher and the fizzbuzz node.
+  Here is an example launch file that runs the ~number_publisher_node.py~.
   You can copy the format to make it launch the fizzbuzz node as well. 
   Launch files go in a directory called ~launch~ in the package to which they belong. 
-  You can name this one ~fizzbuzz.launch~ and put it in a new folder at ~fizzbuzz/launch~.
+  You can name the new launch file ~fizzbuzz_launch.py~ and put it in a new folder at ~fizzbuzz/launch~.
 
-#+BEGIN_SRC text :var data="" :var width="\\textwidth" :results output
-<launch>
-    <node pkg="fizzbuzz" name="number_publisher_node" type="number_publisher_node.py" output="screen"/>
-</launch>
+#+BEGIN_SRC python
+  from launch import LaunchDescription
+  from launch_ros.actions import Node
+
+  def generate_launch_description():
+      number_publisher_node = Node(
+              package='fizzbuzz',
+              executable='number_publisher_node.py',
+              output='screen'
+          )
+
+      return LaunchDescription([number_publisher_node])
 #+END_SRC
 
-
-  As you can see, we need to specify the package of the node, the name of the node, and the filename of the node in order to 
-  properly start the node from a launch file. The output attribute specifies where the messages from the ROS log command get sent.
+  As you can see, we need to specify the package of the node and the filename of the node in order to properly start the node from a launch file.
+  The output attribute specifies where the messages from the ROS log command get sent.
   By specifying the value ~screen~ they will appear in the terminal we use to start the launch file.
 
-  For more information about the format of a ROS launch file, see this page: http://wiki.ros.org/roslaunch/XML.
-  
-  Now if we want to play FizzBuzz again we can simply open two terminals and run the following commands.
+  For more information about the format of a ROS2 launch file, see this page: https://docs.ros.org/en/galactic/Tutorials/Launch/Launch-Main.html
 
-  The roslaunch command will run the launch file. It will also start the ROS master if one is not already running, so this launch file saved us two terminals!
+  To add the launch file to the build add this to your ~CMakeLists.txt~
   
+#+BEGIN_SRC text :var data="" :var width="\\textwidth" :results output
+  install(DIRECTORY
+    launch
+    DESTINATION share/${PROJECT_NAME}/
+  )
+#+END_SRC
+
+  And this to your ~package.xml~.
+  
+#+BEGIN_SRC xml :var data="" :var width="\\textwidth" :results output
+  <exec_depend>ros2launch</exec_depend>
+#+END_SRC
+
+  Run ~colcon build~ again and now if we want to play FizzBuzz again we can simply open two terminals and run the following commands.
+
+  The ~ros2 launch~ command will run the launch file.
+
 #+BEGIN_SRC sh
-  roslaunch fizzbuzz number_publisher_node.py
+    ros2 launch fizzbuzz fizzbuzz_launch.py
 #+END_SRC
 
   To see the messages on the ~fizzbuzz_stats~ topic, we will still have to use the ~rostopic echo~ command.
 
 #+BEGIN_SRC sh
-  rostopic echo fizzbuzz_stats
+  ros2 topic echo fizzbuzz_stats
 #+END_SRC
 
 
 * RQT
-  RQT is a useful too to see what nodes are running and how messages are being 
+  RQT is a useful tool to see what nodes are running and how messages are being 
   transfered between them. 
   
   Use your launch file to begin a game of FizzBuzz and then open RQT using the following command in a new terminal.
@@ -498,10 +576,13 @@ if __name__ == "__main__":
   ~Node Graph~. This will show you all of the currently running ROS nodes as circles and the topics they communicate on as arrows. 
   For FizzBuzz this graph is only two nodes with a single topic between them, but RQT is very helpful for visualizing the connections in larger
   projects. RQT has many other helpful tools for inspecting messages and graphing data that you might want to explore.
+
+  [[./assets/images/rqt_node_graph.png]]
   
-  ROS has many built in tools for seeing what topics being used (~rostopic list~), what nodes are being run (~rosnode list~), 
-  recording and playing back messages (~rosbag~), diagnosing problems while ROS is running (~roswtf~), and many more.
+  ROS2 has many built in tools for seeing what topics being used (~ros2 topic list~), what nodes are being run (~ros2 node list~), 
+  recording and playing back messages (~ros2 bag~), diagnosing problems while ROS2 is running (~ros2 wtf~), and many more.
   
 * Keep Exploring!
-  This tutorial has just scratched the surface of what ROS can do. To learn more check out the ROS Wiki here: http://wiki.ros.org/. 
-  Hopefully you found this tutorial helpful on your journey of learning ROS.
+  This tutorial has just scratched the surface of what ROS2 can do.
+  To learn more check out the ROS2 Wiki here: https://docs.ros.org/en/galactic/index.html
+  Hopefully you found this tutorial helpful on your journey of learning ROS2.

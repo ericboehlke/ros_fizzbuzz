@@ -8,6 +8,11 @@ body {
     color: #ccc;
 }
 
+img {
+    width: 100%;
+    height: auto;
+}
+
 a {
     color: #5F97D2;
     text-decoration: none;
