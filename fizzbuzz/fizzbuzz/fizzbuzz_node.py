@@ -26,7 +26,7 @@ class FizzBuzzNode(Node):
     def number_callback(self, msg):
         # this function is called whenever a number is recived.
 
-        number = msg.data 
+        number = msg.data
 
         fizzbuzz_str = self.fizzbuzz(number)
         # loginfo to print the string to the terminal
@@ -38,6 +38,9 @@ class FizzBuzzNode(Node):
             self.total_buzz += 1
         elif fizzbuzz_str == "fizzbuzz":
             self.total_fizzbuzz += 1
+        else:
+            # fizzbuzz() returns the number as a string for non-fizzbuzz values
+            pass
         self.total_numbers += 1
 
         fizzbuzz_msg = FizzBuzz()
@@ -56,6 +59,8 @@ class FizzBuzzNode(Node):
             result += "fizz"
         if number % 5 == 0:
             result += "buzz"
+        if not result:
+            return str(number)
         return result
 
 
