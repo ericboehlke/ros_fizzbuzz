@@ -6,7 +6,7 @@ from rclpy.node import Node
 from std_msgs.msg import Int64
 
 # import our new fizzbuzz message type
-from fizzbuzz.msg import FizzBuzz 
+from fizzbuzz_interfaces.msg import FizzBuzz
 
 class FizzBuzzNode(Node):
     def __init__(self):
