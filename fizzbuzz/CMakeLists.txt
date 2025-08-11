@@ -10,7 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
+find_package(fizzbuzz_interfaces REQUIRED)
 
 ament_python_install_package(${PROJECT_NAME})
 
@@ -19,10 +19,6 @@ install(PROGRAMS
   fizzbuzz/fizzbuzz_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-  msg/FizzBuzz.msg  
-) 
 
 install(DIRECTORY
   launch
